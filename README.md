@@ -53,9 +53,9 @@ You have two options to run the application:
    - Right-click the script and select "Run with PowerShell" or
    - Open PowerShell and navigate to the script directory:
    ```powershell
-   .\EmailAuthValidator.ps1
+   .\bulk-checker.ps1
    ```
 
 2. **Executable**:
-   - Double-click `EmailAuthValidator.exe` to run directly
+   - Double-click `bulk-checker.exe` to run directly
    - No PowerShell environment needed
