@@ -1,6 +1,7 @@
 # Email Authentication Validator
 
 A PowerShell GUI tool for validating email authentication records (SPF, DKIM, and DMARC) for multiple domains.
+![image](https://github.com/user-attachments/assets/9e2bfdcb-47d7-423c-909a-9a0055df429f)
 
 ## Features
 
