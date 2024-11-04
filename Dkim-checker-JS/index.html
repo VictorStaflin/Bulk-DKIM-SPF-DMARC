@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Authentication Validator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Heroicons CDN -->
+  <script src="https://unpkg.com/heroicons@1.0.6/dist/heroicons.min.js"></script>
+  <style>
+    /* Custom scrollbar for better aesthetics */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    /* Loader Animation */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3490dc;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    /* Toast Animations */
+    .toast-enter {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .toast-enter-active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast-exit {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .toast-exit-active {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-7xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-extrabold text-gray-800 dark:text-gray-200">Email Authentication Validator</h1>
+        <button id="theme-toggle" aria-label="Toggle Theme" class="text-gray-600 dark:text-gray-300 focus:outline-none">
+          <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor">
+            <!-- Sun Icon -->
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 3v1m0 16v1m8.66-8.66h-1M4.34 12h-1m15.364 4.95l-.707-.707M6.343 6.343l-.707-.707m12.728 12.728l-.707-.707M6.343 17.657l-.707-.707M12 5a7 7 0 000 14 7 7 0 000-14z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Left Panel -->
+        <div class="lg:w-1/3">
+          <!-- Domain Input Card -->
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Domain Input</h2>
+            <textarea id="domain-input" class="w-full h-40 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200"
+                      placeholder="Enter domains (one per line)"></textarea>
+            <div class="flex mt-6 gap-4">
+              <button id="import-file-button" class="flex-1 flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition focus:ring-2 focus:ring-blue-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M16 4h.01M12 4h.01M8 4h.01M4 4h.01M6 20h12a2 2 0 002-2v-1a2 2 0 00-2-2H6a2 2 0 00-2 2v1a2 2 0 002 2z" />
+                </svg>
+                Import Sender Domains
+              </button>
+              <input type="file" id="sender-domains-file-input" accept=".csv" class="hidden">
+            </div>
+          </div>
+
+          <!-- Actions Card -->
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Actions</h2>
+            <button id="validate-button" class="w-full flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition mb-4 focus:ring-2 focus:ring-green-500">
+              <span id="validate-button-text">Validate Domains</span>
+              <span id="validate-button-loader" class="loader hidden"></span>
+            </button>
+            <button id="export-button" disabled class="w-full flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition focus:ring-2 focus:ring-purple-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
+                   stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M16 4h.01M12 4h.01M8 4h.01M4 4h.01M6 20h12a2 2 0 002-2v-1a2 2 0 00-2-2H6a2 2 0 00-2 2v1a2 2 0 002 2z" />
+              </svg>
+              Export to CSV
+            </button>
+          </div>
+
+          <!-- Instructions Card -->
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Fetch Sender Domains from Exchange Online</h2>
+            <ol class="list-decimal list-inside space-y-2 text-gray-700 dark:text-gray-300">
+              <li>Ensure you have the necessary permissions and PowerShell modules installed.</li>
+              <li>Run the provided PowerShell script to fetch sender domains from the last 30 days.</li>
+              <li>Locate the generated <code>SenderDomains.csv</code> file.</li>
+              <li>Use the "Import Sender Domains" button above to upload the CSV file.</li>
+            </ol>
+            <div class="mt-4">
+              <a href="Fetch-SenderDomains.ps1" download class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition focus:ring-2 focus:ring-green-500">
+                Download Fetch Script
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="lg:w-2/3">
+          <!-- Results Card -->
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+            <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Results</h2>
+            <!-- Filters and Search -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+              <div class="flex items-center space-x-2">
+                <label for="filter-status" class="text-gray-700 dark:text-gray-300">Filter:</label>
+                <select id="filter-status" class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200">
+                  <option value="all">All</option>
+                  <option value="complete">Complete</option>
+                  <option value="incomplete">Incomplete</option>
+                </select>
+              </div>
+              <div class="flex items-center space-x-2">
+                <label for="sort-by" class="text-gray-700 dark:text-gray-300">Sort By:</label>
+                <select id="sort-by" class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200">
+                  <option value="domain-asc">Domain (A-Z)</option>
+                  <option value="domain-desc">Domain (Z-A)</option>
+                  <option value="status-asc">Status (Incomplete first)</option>
+                  <option value="status-desc">Status (Complete first)</option>
+                  <option value="timestamp-asc">Timestamp (Oldest first)</option>
+                  <option value="timestamp-desc">Timestamp (Newest first)</option>
+                </select>
+              </div>
+              <div class="flex items-center space-x-2">
+                <label for="search" class="text-gray-700 dark:text-gray-300">Search:</label>
+                <input type="text" id="search" placeholder="Search domains..." class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:text-gray-200">
+              </div>
+            </div>
+            <!-- Progress Bar -->
+            <div id="progress-container" class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-4 mb-6 hidden">
+              <div id="progress-bar" class="bg-blue-500 h-4 rounded-full transition-all duration-300" style="width: 0%;"></div>
+            </div>
+            <!-- Results Table -->
+            <div class="overflow-x-auto">
+              <table class="min-w-full bg-white dark:bg-gray-800 rounded-lg">
+                <thead>
+                  <tr>
+                    <th class="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Domain</th>
+                    <th class="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">SPF</th>
+                    <th class="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">DKIM</th>
+                    <th class="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">DMARC</th>
+                    <th class="py-3 px-4 bg-gray-100 dark:bg-gray-700 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="results-table-body">
+                  <!-- Dynamic Rows Here -->
+                </tbody>
+              </table>
+              <!-- No Results Message -->
+              <div id="no-results" class="text-center text-gray-500 dark:text-gray-400 mt-6 hidden">
+                No results to display.
+              </div>
+            </div>
+            <!-- Pagination -->
+            <div id="pagination" class="flex justify-center items-center mt-6 hidden space-x-2">
+              <button id="prev-page" class="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition focus:outline-none">Previous</button>
+              <span id="current-page" class="text-gray-700 dark:text-gray-200">1</span>
+              <button id="next-page" class="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition focus:outline-none">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Details Modal -->
+      <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden transition-opacity duration-300">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-11/12 md:w-3/4 lg:w-1/2 max-h-screen overflow-y-auto p-6 relative transform transition-transform duration-300 scale-95 opacity-0">
+          <button id="close-modal" aria-label="Close Modal" class="absolute top-4 right-4 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-500 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Domain Details: <span id="modal-domain" class="text-blue-500"></span></h2>
+          <!-- SPF Section -->
+          <div class="mb-6">
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">SPF Record</h3>
+            <pre id="modal-spf" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-4 rounded-lg overflow-x-auto"></pre>
+            <button id="copy-spf" class="mt-2 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition focus:outline-none">
+              Copy SPF
+            </button>
+          </div>
+          <!-- DKIM Section -->
+          <div class="mb-6">
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">DKIM Status</h3>
+            <pre id="modal-dkim" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-4 rounded-lg overflow-x-auto"></pre>
+            <button id="copy-dkim" class="mt-2 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition focus:outline-none">
+              Copy DKIM
+            </button>
+          </div>
+          <!-- DMARC Section -->
+          <div class="mb-6">
+            <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">DMARC Record</h3>
+            <pre id="modal-dmarc" class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-4 rounded-lg overflow-x-auto"></pre>
+            <button id="copy-dmarc" class="mt-2 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 transition focus:outline-none">
+              Copy DMARC
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      // JavaScript Code
+
+      // State Variables
+      let results = [];
+      let selectedDomain = null;
+      let isDarkMode = false;
+      const CONCURRENCY_LIMIT = 10; // Increased concurrency for faster processing
+      const ITEMS_PER_PAGE = 10;
+      let currentPage = 1;
+      let filteredResults = [];
+
+      // DOM Elements
+      const domainInput = document.getElementById('domain-input');
+      const importFileButton = document.getElementById('import-file-button');
+      const senderDomainsFileInput = document.getElementById('sender-domains-file-input');
+      const validateButton = document.getElementById('validate-button');
+      const validateButtonText = document.getElementById('validate-button-text');
+      const validateButtonLoader = document.getElementById('validate-button-loader');
+      const exportButton = document.getElementById('export-button');
+      const resultsTableBody = document.getElementById('results-table-body');
+      const noResults = document.getElementById('no-results');
+      const detailsModal = document.getElementById('details-modal');
+      const closeModalButton = document.getElementById('close-modal');
+      const modalDomain = document.getElementById('modal-domain');
+      const modalSPF = document.getElementById('modal-spf');
+      const modalDKIM = document.getElementById('modal-dkim');
+      const modalDMARC = document.getElementById('modal-dmarc');
+      const copySPFButton = document.getElementById('copy-spf');
+      const copyDKIMButton = document.getElementById('copy-dkim');
+      const copyDMARCButton = document.getElementById('copy-dmarc');
+      const filterStatus = document.getElementById('filter-status');
+      const sortBy = document.getElementById('sort-by');
+      const searchInput = document.getElementById('search');
+      const progressContainer = document.getElementById('progress-container');
+      const progressBar = document.getElementById('progress-bar');
+      const themeToggle = document.getElementById('theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
+      const pagination = document.getElementById('pagination');
+      const prevPageButton = document.getElementById('prev-page');
+      const nextPageButton = document.getElementById('next-page');
+      const currentPageSpan = document.getElementById('current-page');
+
+      // Event Listeners
+      importFileButton.addEventListener('click', () => senderDomainsFileInput.click());
+
+      senderDomainsFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const content = event.target.result;
+            // Parse CSV to extract domains
+            const domains = parseCSV(content);
+            const sanitizedDomains = sanitizeDomains(domains);
+            appendDomainsToInput(sanitizedDomains);
+            if (sanitizedDomains.length < domains.length) {
+              showToast(`${domains.length - sanitizedDomains.length} duplicate domain(s) removed.`);
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+
+      validateButton.addEventListener('click', validateDomains);
+      exportButton.addEventListener('click', exportToCSV);
+      closeModalButton.addEventListener('click', () => {
+        closeModal();
+      });
+
+      // Copy to Clipboard
+      copySPFButton.addEventListener('click', () => {
+        copyToClipboard(modalSPF.textContent);
+        showToast('SPF Record Copied!');
+      });
+
+      copyDKIMButton.addEventListener('click', () => {
+        copyToClipboard(modalDKIM.textContent);
+        showToast('DKIM Records Copied!');
+      });
+
+      copyDMARCButton.addEventListener('click', () => {
+        copyToClipboard(modalDMARC.textContent);
+        showToast('DMARC Record Copied!');
+      });
+
+      // Filter, Sort, and Search
+      filterStatus.addEventListener('change', applyFiltersAndRender);
+      sortBy.addEventListener('change', applyFiltersAndRender);
+      searchInput.addEventListener('input', applyFiltersAndRender);
+
+      // Pagination
+      prevPageButton.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderTable();
+        }
+      });
+
+      nextPageButton.addEventListener('click', () => {
+        const totalPages = Math.ceil(filteredResults.length / ITEMS_PER_PAGE);
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+        }
+      });
+
+      // Theme Toggle
+      themeToggle.addEventListener('click', toggleTheme);
+
+      // Utility Functions
+
+      /**
+       * Parse CSV content and extract sender domains
+       * Assumes the CSV has a header and a column named 'SenderDomain'
+       * @param {string} csvContent 
+       * @returns {Array} - Array of domains
+       */
+      function parseCSV(csvContent) {
+        const lines = csvContent.split(/\r?\n/);
+        const header = lines[0].split(',');
+        const domainIndex = header.findIndex(h => h.trim().toLowerCase() === 'senderdomain');
+
+        if (domainIndex === -1) {
+          showToast('Invalid CSV format. "SenderDomain" column not found.');
+          return [];
+        }
+
+        const domains = lines.slice(1).map(line => {
+          const cols = line.split(',');
+          return cols[domainIndex].trim();
+        }).filter(d => d);
+
+        return domains;
+      }
+
+      /**
+       * Sanitize domains by removing duplicates (case-insensitive).
+       * @param {Array} domains - Array of domain strings.
+       * @returns {Array} - Array of unique domain strings.
+       */
+      function sanitizeDomains(domains) {
+        const uniqueDomainsSet = new Set();
+        const uniqueDomains = [];
+
+        domains.forEach(domain => {
+          const lowerDomain = domain.toLowerCase();
+          if (!uniqueDomainsSet.has(lowerDomain) && isValidDomain(domain)) {
+            uniqueDomainsSet.add(lowerDomain);
+            uniqueDomains.push(domain);
+          }
+        });
+
+        return uniqueDomains;
+      }
+
+      /**
+       * Append domains to the textarea input
+       * @param {Array} domains 
+       */
+      function appendDomainsToInput(domains) {
+        const existingDomains = domainInput.value.split(/\n/).map(d => d.trim()).filter(d => d);
+        const combinedDomains = existingDomains.concat(domains);
+        const sanitizedCombined = sanitizeDomains(combinedDomains);
+        domainInput.value = sanitizedCombined.join('\n');
+      }
+
+      /**
+       * Toggle Dark Mode
+       */
+      function toggleTheme() {
+        isDarkMode = !isDarkMode;
+        document.documentElement.classList.toggle('dark', isDarkMode);
+        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        updateThemeIcon();
+      }
+
+      function updateThemeIcon() {
+        if (isDarkMode) {
+          // Moon Icon
+          themeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+          `;
+        } else {
+          // Sun Icon
+          themeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 3v1m0 16v1m8.66-8.66h-1M4.34 12h-1m15.364 4.95l-.707-.707M6.343 6.343l-.707-.707m12.728 12.728l-.707-.707M6.343 17.657l-.707-.707M12 5a7 7 0 000 14 7 7 0 000-14z" />
+          `;
+        }
+      }
+
+      /**
+       * Initialize Theme
+       */
+      function initializeTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+          isDarkMode = true;
+          document.documentElement.classList.add('dark');
+        }
+        updateThemeIcon();
+      }
+
+      /**
+       * Show Toast Notification
+       * @param {string} message 
+       */
+      function showToast(message) {
+        const toastContainer = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast-enter bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg';
+        toast.textContent = message;
+        toastContainer.appendChild(toast);
+        
+        // Trigger reflow for animation
+        void toast.offsetWidth;
+        toast.classList.add('toast-enter-active');
+
+        setTimeout(() => {
+          toast.classList.remove('toast-enter-active');
+          toast.classList.add('toast-exit-active');
+          toast.addEventListener('transitionend', () => {
+            toast.remove();
+          });
+        }, 3000);
+      }
+
+      /**
+       * Copy Text to Clipboard
+       * @param {string} text 
+       */
+      function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+          // Success
+        }).catch(err => {
+          console.error('Could not copy text: ', err);
+        });
+      }
+
+      /**
+       * Fetch DNS Records using Cloudflare's DNS-over-HTTPS API
+       * @param {string} domain 
+       * @param {string} type 
+       * @returns {Array} - Array of DNS records
+       */
+      async function fetchDnsRecords(domain, type) {
+        try {
+          const response = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`, {
+            headers: {
+              'Accept': 'application/dns-json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`DNS lookup failed: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          if (data.Status !== 0) {
+            // DNS response status is not NOERROR
+            return [];
+          }
+
+          return data.Answer || [];
+        } catch (error) {
+          console.error(`DNS lookup failed for ${domain} (${type}):`, error);
+          return [];
+        }
+      }
+
+      /**
+       * Clean TXT Records
+       * @param {string} record 
+       * @returns {string} - Cleaned record
+       */
+      function cleanTxtRecord(record) {
+        if (!record) return '';
+        return record
+          .replace(/^"|"$/g, '') // Remove only surrounding quotes
+          .replace(/\\"/g, '"') // Unescape internal quotes
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .trim();
+      }
+
+      /**
+       * Get SPF Record
+       * @param {string} domain 
+       * @returns {Object} 
+       */
+      async function getSPFRecord(domain) {
+        const records = await fetchDnsRecords(domain, 'TXT');
+        let spfRecord = null;
+
+        for (const record of records) {
+          const clean = cleanTxtRecord(record.data);
+          if (clean.toLowerCase().startsWith('v=spf1')) {
+            spfRecord = clean;
+            break;
+          }
+        }
+
+        return {
+          exists: !!spfRecord,
+          record: spfRecord || 'No SPF Record'
+        };
+      }
+
+      /**
+       * Get DMARC Record
+       * @param {string} domain 
+       * @returns {Object} 
+       */
+      async function getDMARCRecord(domain) {
+        const records = await fetchDnsRecords(`_dmarc.${domain}`, 'TXT');
+        let dmarcRecord = null;
+        let policy = 'none';
+
+        for (const record of records) {
+          const clean = cleanTxtRecord(record.data);
+          if (clean.toLowerCase().startsWith('v=dmarc1')) {
+            dmarcRecord = clean;
+            const match = clean.match(/p=([a-zA-Z]+)/i);
+            if (match) {
+              policy = match[1].toLowerCase();
+            }
+            break;
+          }
+        }
+
+        return {
+          exists: !!dmarcRecord,
+          record: dmarcRecord || 'No DMARC Record',
+          policy
+        };
+      }
+
+      /**
+       * Check DKIM Records
+       * @param {string} domain 
+       * @returns {Object} 
+       */
+      async function checkDKIM(domain) {
+        const selectors = [
+          'default', 'google', 'selector1', 'selector2', 'k1',
+          'dkim', 'mail', 's1', 's2'
+        ];
+
+        let validSelectors = [];
+        let records = [];
+
+        // Limit concurrent DKIM lookups
+        const limit = pLimit(CONCURRENCY_LIMIT);
+        const dkims = selectors.map(selector => limit(async () => {
+          const dkimDomain = `${selector}._domainkey.${domain}`;
+          const dkimRecords = await fetchDnsRecords(dkimDomain, 'TXT');
+
+          for (const record of dkimRecords) {
+            const clean = cleanTxtRecord(record.data);
+            if (clean.toLowerCase().includes('v=dkim1') && clean.toLowerCase().includes('p=')) {
+              validSelectors.push(selector);
+              records.push(clean);
+              break; // Only need one valid record per selector
+            }
+          }
+        }));
+
+        await Promise.all(dkims);
+
+        return {
+          exists: validSelectors.length > 0,
+          count: validSelectors.length,
+          selectors: validSelectors,
+          records: records
+        };
+      }
+
+      /**
+       * Validate Domain
+       * @param {string} domain 
+       * @returns {Object} 
+       */
+      async function validateDomain(domain) {
+        try {
+          if (!isValidDomain(domain)) {
+            throw new Error('Invalid domain format');
+          }
+
+          domain = domain.toLowerCase().trim();
+
+          // Run checks in parallel
+          const [spf, dmarc, dkim] = await Promise.all([
+            getSPFRecord(domain),
+            getDMARCRecord(domain),
+            checkDKIM(domain)
+          ]);
+
+          return {
+            domain,
+            spf,
+            dkim,
+            dmarc,
+            timestamp: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error(`Validation failed for ${domain}:`, error);
+          return {
+            domain,
+            error: error.message,
+            spf: { exists: false, record: 'Error checking SPF' },
+            dkim: { exists: false, count: 0, selectors: [], records: [] },
+            dmarc: { exists: false, record: 'Error checking DMARC', policy: 'none' },
+            timestamp: new Date().toISOString()
+          };
+        }
+      }
+
+      /**
+       * Validate Domains Handler with Concurrency Control
+       */
+      async function validateDomains() {
+        let domainList = domainInput.value
+          .split(/\n/)
+          .map(d => d.trim())
+          .filter(d => d && d.includes('.'));
+
+        // Sanitize domains by removing duplicates
+        const sanitizedDomains = sanitizeDomains(domainList);
+        const duplicatesRemoved = domainList.length - sanitizedDomains.length;
+
+        if (duplicatesRemoved > 0) {
+          domainInput.value = sanitizedDomains.join('\n');
+          showToast(`${duplicatesRemoved} duplicate domain(s) removed.`);
+        }
+
+        domainList = sanitizedDomains;
+
+        if (domainList.length === 0) {
+          showToast('Please enter at least one valid domain.');
+          return;
+        }
+
+        // Reset previous results
+        results = [];
+        exportButton.disabled = true;
+        noResults.classList.remove('hidden');
+        pagination.classList.add('hidden');
+
+        // Initialize Progress Bar
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+
+        // Disable buttons during processing
+        validateButton.disabled = true;
+        validateButtonText.textContent = 'Validating...';
+        validateButtonLoader.classList.remove('hidden');
+
+        let completed = 0;
+
+        // Process domains with concurrency limit
+        const limit = pLimit(CONCURRENCY_LIMIT);
+        const validationPromises = domainList.map(domain => limit(async () => {
+          const result = await validateDomain(domain);
+          results.push(result);
+          completed++;
+          updateProgressBar(completed, domainList.length);
+        }));
+
+        try {
+          await Promise.all(validationPromises);
+          showToast('Validation completed!');
+        } catch (error) {
+          console.error('Validation encountered an error:', error);
+          showToast('An error occurred during validation.');
+        } finally {
+          // Re-enable buttons
+          validateButton.disabled = false;
+          validateButtonText.textContent = 'Validate Domains';
+          validateButtonLoader.classList.add('hidden');
+          progressContainer.classList.add('hidden');
+          applyFiltersAndRender(); // Apply current filters and sort
+          exportButton.disabled = results.length === 0;
+        }
+      }
+
+      /**
+       * Apply Filters, Sort, and Search, then Render the Table
+       */
+      function applyFiltersAndRender() {
+        const filter = filterStatus.value;
+        const sort = sortBy.value;
+        const search = searchInput.value.toLowerCase();
+
+        // Filter
+        filteredResults = results.filter(r => {
+          let statusMatch = true;
+          if (filter === 'complete') {
+            statusMatch = r.spf.exists && r.dkim.exists && r.dmarc.exists;
+          } else if (filter === 'incomplete') {
+            statusMatch = !(r.spf.exists && r.dkim.exists && r.dmarc.exists);
+          }
+
+          let searchMatch = r.domain.toLowerCase().includes(search);
+
+          return statusMatch && searchMatch;
+        });
+
+        // Sort
+        filteredResults.sort((a, b) => {
+          switch (sort) {
+            case 'domain-asc':
+              return a.domain.localeCompare(b.domain);
+            case 'domain-desc':
+              return b.domain.localeCompare(a.domain);
+            case 'status-asc':
+              return ((a.spf.exists && a.dkim.exists && a.dmarc.exists) ? 1 : 0) - ((b.spf.exists && b.dkim.exists && b.dmarc.exists) ? 1 : 0);
+            case 'status-desc':
+              return ((b.spf.exists && b.dkim.exists && b.dmarc.exists) ? 1 : 0) - ((a.spf.exists && a.dkim.exists && a.dmarc.exists) ? 1 : 0);
+            case 'timestamp-asc':
+              return new Date(a.timestamp) - new Date(b.timestamp);
+            case 'timestamp-desc':
+              return new Date(b.timestamp) - new Date(a.timestamp);
+            default:
+              return 0;
+          }
+        });
+
+        // Reset to first page
+        currentPage = 1;
+        renderTable();
+      }
+
+      /**
+       * Render the Results Table with Pagination
+       */
+      function renderTable() {
+        resultsTableBody.innerHTML = '';
+
+        if (filteredResults.length === 0) {
+          noResults.classList.remove('hidden');
+          pagination.classList.add('hidden');
+          return;
+        } else {
+          noResults.classList.add('hidden');
+        }
+
+        const totalPages = Math.ceil(filteredResults.length / ITEMS_PER_PAGE);
+        if (totalPages > 1) {
+          pagination.classList.remove('hidden');
+        } else {
+          pagination.classList.add('hidden');
+        }
+
+        // Clamp currentPage within bounds
+        currentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+        currentPageSpan.textContent = `${currentPage} / ${totalPages}`;
+
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const pageItems = filteredResults.slice(startIndex, endIndex);
+
+        pageItems.forEach(result => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
+
+          const tdDomain = document.createElement('td');
+          tdDomain.className = 'py-3 px-4 text-gray-700 dark:text-gray-200';
+          tdDomain.textContent = result.domain;
+          tr.appendChild(tdDomain);
+
+          const tdSPF = document.createElement('td');
+          tdSPF.className = 'py-3 px-4 text-gray-700 dark:text-gray-200';
+          tdSPF.textContent = result.spf.exists ? '✅ Found' : '❌ Not Found';
+          tr.appendChild(tdSPF);
+
+          const tdDKIM = document.createElement('td');
+          tdDKIM.className = 'py-3 px-4 text-gray-700 dark:text-gray-200';
+          tdDKIM.textContent = result.dkim.exists ? `✅ Found (${result.dkim.count})` : '❌ Not Found';
+          tr.appendChild(tdDKIM);
+
+          const tdDMARC = document.createElement('td');
+          tdDMARC.className = 'py-3 px-4 text-gray-700 dark:text-gray-200';
+          tdDMARC.textContent = result.dmarc.exists ? `✅ Found (${result.dmarc.policy})` : '❌ Not Found';
+          tr.appendChild(tdDMARC);
+
+          const tdStatus = document.createElement('td');
+          tdStatus.className = 'py-3 px-4 text-gray-700 dark:text-gray-200';
+          tdStatus.textContent = (result.spf.exists && result.dkim.exists && result.dmarc.exists) ? 'COMPLETE' : 'INCOMPLETE';
+          tdStatus.classList.add(result.spf.exists && result.dkim.exists && result.dmarc.exists ? 'text-green-600' : 'text-red-600');
+          tr.appendChild(tdStatus);
+
+          // Click event to show details
+          tr.addEventListener('click', () => showDetails(result));
+
+          resultsTableBody.appendChild(tr);
+        });
+      }
+
+      /**
+       * Show Details in Modal
+       * @param {Object} result 
+       */
+      function showDetails(result) {
+        selectedDomain = result;
+        modalDomain.textContent = result.domain;
+
+        modalSPF.textContent = result.spf.record;
+
+        if (result.dkim.exists) {
+          let dkimText = `Found ${result.dkim.count} valid DKIM record(s):\n\n`;
+          result.dkim.selectors.forEach((selector, index) => {
+            dkimText += `Selector: ${selector}\nRecord: ${result.dkim.records[index]}\n\n`;
+          });
+          modalDKIM.textContent = dkimText.trim();
+        } else {
+          modalDKIM.textContent = '❌ No DKIM Records Found';
+        }
+
+        modalDMARC.textContent = result.dmarc.record;
+
+        // Show modal with animation
+        detailsModal.classList.remove('hidden');
+        const modalContent = detailsModal.querySelector('div');
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }
+
+      /**
+       * Close Modal with Animation
+       */
+      function closeModal() {
+        const modalContent = detailsModal.querySelector('div');
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+          detailsModal.classList.add('hidden');
+        }, 300);
+      }
+
+      /**
+       * Export Results to CSV
+       */
+      function exportToCSV() {
+        if (results.length === 0) return;
+
+        const headers = ['Domain', 'SPF', 'DKIM', 'DMARC', 'DKIM Selectors', 'SPF Record', 'DMARC Policy', 'Status', 'Timestamp'];
+        const rows = results.map(r => [
+          `"${r.domain}"`,
+          r.spf.exists ? 'Found' : 'Not Found',
+          r.dkim.exists ? `Found (${r.dkim.count})` : 'Not Found',
+          r.dmarc.exists ? `Found (${r.dmarc.policy})` : 'Not Found',
+          `"${r.dkim.selectors.join(';')}"`,
+          `"${r.spf.record.replace(/"/g, '""')}"`,
+          `"${r.dmarc.policy}"`,
+          (r.spf.exists && r.dkim.exists && r.dmarc.exists) ? 'COMPLETE' : 'INCOMPLETE',
+          `"${r.timestamp}"`
+        ]);
+
+        let csvContent = headers.join(',') + '\n' + rows.map(row => row.join(',')).join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'email-auth-results.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('CSV Exported Successfully!');
+      }
+
+      /**
+       * Update Progress Bar
+       * @param {number} completed 
+       * @param {number} total 
+       */
+      function updateProgressBar(completed, total) {
+        const percentage = Math.round((completed / total) * 100);
+        progressBar.style.width = `${percentage}%`;
+      }
+
+      /**
+       * Validate Domain Format using Regex
+       * @param {string} domain 
+       * @returns {boolean}
+       */
+      function isValidDomain(domain) {
+        const regex = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,11}$/;
+        return regex.test(domain);
+      }
+
+      /**
+       * Close Modal when clicking outside content
+       */
+      window.addEventListener('click', (event) => {
+        if (event.target === detailsModal) {
+          closeModal();
+        }
+      });
+
+      /**
+       * Initialize Theme on Load
+       */
+      document.addEventListener('DOMContentLoaded', () => {
+        initializeTheme();
+      });
+
+      /**
+       * pLimit Function for Concurrency Control
+       * @param {number} concurrency 
+       * @returns {Function}
+       */
+      function pLimit(concurrency) {
+        const queue = [];
+        let activeCount = 0;
+
+        const next = () => {
+          if (queue.length === 0) return;
+
+          if (activeCount >= concurrency) return;
+
+          activeCount++;
+          const { fn, resolve, reject } = queue.shift();
+          fn().then((val) => {
+            resolve(val);
+            activeCount--;
+            next();
+          }).catch((err) => {
+            reject(err);
+            activeCount--;
+            next();
+          });
+        };
+
+        const run = (fn) => {
+          return new Promise((resolve, reject) => {
+            queue.push({ fn, resolve, reject });
+            next();
+          });
+        };
+
+        return run;
+      }
+    </script>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+</body>
+</html>
